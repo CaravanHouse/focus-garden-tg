@@ -1,0 +1,46 @@
+:root { --paper:#f2efe3; --ink:#1f2b23; --moss:#2f6b45; --sun:#f0b429; --soil:#6b4f3a; --line:#ddd8c5; --muted:#69736b; font-family:"Manrope",system-ui,sans-serif; }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--paper); color:var(--ink); }
+button,input { font:inherit; color:inherit; }
+button { cursor:pointer; } button:disabled { cursor:not-allowed; opacity:.5; }
+:focus-visible { outline:2px solid var(--moss); outline-offset:2px; }
+.page { max-width:520px; margin:0 auto; padding:calc(24px + env(safe-area-inset-top)) 18px calc(40px + env(safe-area-inset-bottom)); }
+h1 { font-family:"Fraunces",Georgia,serif; font-size:40px; margin:0; letter-spacing:-.02em; line-height:1; }
+h2 { font-family:"Fraunces",Georgia,serif; font-size:22px; margin:0 0 12px; }
+header p { color:var(--muted); margin:8px 0 0; }
+.timer { display:flex; flex-direction:column; align-items:center; margin-top:22px; }
+.ring { position:relative; width:230px; height:230px; }
+.ring svg { position:absolute; inset:0; width:100%; height:100%; }
+.track { fill:none; stroke:var(--line); stroke-width:10; }
+.fill { fill:none; stroke:var(--moss); stroke-width:10; stroke-linecap:round; transition:stroke-dashoffset .3s linear; }
+.seed { position:absolute; inset:34px; display:flex; align-items:flex-end; justify-content:center; }
+.seed svg { position:static; width:100%; height:100%; }
+.clock { font-family:"Fraunces",Georgia,serif; font-size:52px; margin:8px 0 10px; font-variant-numeric:tabular-nums; }
+.what { color:var(--muted); margin:0 0 12px; text-align:center; }
+.durations { display:flex; flex-wrap:wrap; justify-content:center; gap:6px; margin-bottom:12px; }
+.durations button { border:1px solid var(--line); background:none; border-radius:999px; padding:6px 12px; font-size:14px; }
+.durations button[aria-pressed="true"] { background:var(--ink); color:#fff; border-color:var(--ink); }
+.btn { border:0; border-radius:14px; padding:14px 26px; background:var(--sun); color:#3b2b00; font-weight:700; font-size:16px; }
+.btn.ghost { background:none; border:1px solid var(--line); color:var(--muted); font-weight:500; }
+.tasks, .forest, .top { margin-top:34px; }
+.add { display:flex; gap:8px; }
+.add input { flex:1; min-width:0; padding:12px 14px; border:1px solid var(--line); border-radius:12px; background:#fbfaf4; }
+.add button { border:0; border-radius:12px; padding:0 16px; background:var(--moss); color:#fff; font-weight:600; }
+.tasks ul { list-style:none; margin:12px 0 0; padding:0; display:grid; gap:8px; }
+.tasks li { display:flex; gap:6px; }
+.pick { flex:1; display:flex; justify-content:space-between; gap:12px; text-align:left; padding:13px 14px; border-radius:12px; border:1px solid var(--line); background:#fbfaf4; }
+.pick em { font-style:normal; color:var(--moss); font-weight:700; white-space:nowrap; } .pick em::after { content:" 🌳"; }
+.on .pick { border-color:var(--moss); box-shadow:inset 3px 0 0 var(--moss); }
+.x { border:0; background:none; font-size:22px; color:var(--muted); padding:0 8px; }
+.empty { color:var(--muted); margin:10px 0 0; }
+.stats { display:flex; flex-wrap:wrap; gap:6px 20px; color:var(--muted); font-size:14px; padding-bottom:10px; }
+.stats p { margin:0; } .stats b { color:var(--ink); font-size:18px; }
+.ground { display:flex; flex-wrap:wrap; align-items:flex-end; min-height:120px; padding:12px 12px 0; background:linear-gradient(#e6efd8,#f2efe3 70%); border-radius:20px 20px 0 0; border-bottom:12px solid var(--soil); }
+.plant { width:52px; height:65px; animation:pop .5s ease-out; transform-origin:bottom center; } .plant svg { width:100%; height:100%; display:block; }
+@keyframes pop { from { transform:scaleY(.2); } to { transform:scaleY(1); } }
+@media (prefers-reduced-motion:reduce) { .plant { animation:none; } .fill { transition:none; } }
+.hint { color:var(--muted); margin:auto; align-self:center; }
+.top ol { list-style:none; margin:10px 0 0; padding:0; }
+.top li { display:grid; grid-template-columns:28px 1fr auto 64px; gap:8px; align-items:center; padding:10px 0; border-top:1px solid var(--line); }
+.top li.me { font-weight:700; }
+.rk { color:var(--muted); } .mn { color:var(--muted); text-align:right; font-size:14px; }
