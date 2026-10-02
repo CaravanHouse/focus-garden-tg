@@ -1,14 +1,14 @@
 import { Api, Bot, InlineKeyboard } from "grammy";
 import { esc } from "./auth";
 import type { Garden, Notifier } from "./garden";
-import { KIND_NAME } from "../shared/constants";
+import { DEMO_SECONDS, KIND_NAME } from "../shared/constants";
 
 const openKb = (url?: string) => (url ? new InlineKeyboard().webApp("🌱 Открыть сад", url) : undefined);
 
 export function telegramNotifier(api: Api, webappUrl?: string): Notifier {
   return {
     async treeGrown(userId, kind, seconds, stat) {
-      const demo = seconds === 10;
+      const demo = seconds === DEMO_SECONDS;
       const text = demo
         ? `🌳 Выросла ${KIND_NAME[kind]} (демо-сессия, в рейтинг не идёт).`
         : `🌳 Выросла ${KIND_NAME[kind]}! ${Math.round(seconds / 60)} мин в фокусе.\nВсего деревьев: <b>${stat.trees}</b>, минут: <b>${stat.minutes}</b>.`;
