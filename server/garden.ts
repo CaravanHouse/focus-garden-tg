@@ -3,7 +3,7 @@ import { displayName, type TgUser } from "./auth";
 import { DEMO_SECONDS, type TreeKind } from "../shared/constants";
 
 export interface UserStat { id: number; name: string; username?: string; trees: number; minutes: number; withered: number }
-export interface ActiveSession { kind: TreeKind; startedAt: number; endsAt: number; seconds: number }
+export interface ActiveSession { kind: TreeKind; startedAt: number; endsAt: number; seconds: number; reminded?: boolean }
 interface DbShape { users: Record<string, UserStat>; sessions: Record<string, ActiveSession> }
 
 export interface Notifier {
@@ -12,12 +12,14 @@ export interface Notifier {
 }
 
 const REMINDER_DELAY_MS = 20_000;
+/** Сессии, которые закончились больше часа назад, после перезапуска не напоминаем: человек давно ушёл */
+const STALE_MS = 3_600_000;
 
 export class Garden {
   db: JsonDb<DbShape>;
   private timers = new Map<number, NodeJS.Timeout>();
 
-  constructor(file: string, private notifier: Notifier) {
+  constructor(file: string, private notifier: Notifier, private reminderDelayMs = REMINDER_DELAY_MS) {
     this.db = new JsonDb<DbShape>(file, { users: {}, sessions: {} });
   }
 
@@ -69,9 +71,19 @@ export class Garden {
       .slice(0, limit);
   }
 
-  /** После перезапуска сервера возвращаем напоминания для незавершённых сессий */
-  restoreTimers() {
-    for (const [id, s] of Object.entries(this.db.data.sessions)) this.scheduleReminder(Number(id), s);
+  /**
+   * После перезапуска сервера возвращаем напоминания для незавершённых сессий.
+   * Уже отправленные и давно истёкшие пропускаем, иначе каждый деплой рассылал бы напоминания заново.
+   * Возвращает число запланированных напоминаний.
+   */
+  restoreTimers(): number {
+    let n = 0;
+    for (const [id, s] of Object.entries(this.db.data.sessions)) {
+      if (s.reminded || Date.now() - s.endsAt > STALE_MS) continue;
+      this.scheduleReminder(Number(id), s);
+      n += 1;
+    }
+    return n;
   }
 
   private clear(userId: number) {
@@ -86,10 +98,12 @@ export class Garden {
   private scheduleReminder(userId: number, session: ActiveSession) {
     const old = this.timers.get(userId);
     if (old) clearTimeout(old);
-    const delay = Math.max(0, session.endsAt - Date.now()) + REMINDER_DELAY_MS;
+    const delay = Math.max(0, session.endsAt - Date.now()) + this.reminderDelayMs;
     const t = setTimeout(() => {
       const cur = this.db.data.sessions[String(userId)];
-      if (cur && cur.startedAt === session.startedAt && session.seconds !== DEMO_SECONDS) {
+      if (cur && cur.startedAt === session.startedAt && !cur.reminded && session.seconds !== DEMO_SECONDS) {
+        cur.reminded = true; // запоминаем, чтобы после перезапуска не напомнить второй раз
+        this.db.save();
         void this.notifier.reminder(userId).catch(() => {});
       }
       this.timers.delete(userId);

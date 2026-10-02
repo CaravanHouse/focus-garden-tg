@@ -7,6 +7,7 @@ import type { AddressInfo } from "node:net";
 import { validateInitData } from "../server/auth";
 import { Garden, type Notifier } from "../server/garden";
 import { createApp } from "../server/app";
+import { httpsUrl } from "../server/env";
 
 const TOKEN = "123:TEST";
 const user = { id: 42, first_name: "Умид", username: "umid" };
@@ -54,6 +55,33 @@ garden.db.data.sessions["42"].endsAt = Date.now() - 1;
 garden.start(user, 300, "birch");
 assert.equal(garden.db.data.users["42"].trees, 2, "новая сессия поверх истёкшей засчитывает дерево");
 garden.abandon(user);
+
+// 2б. напоминания: одно на сессию и без повтора после перезапуска сервера
+const file = join(mkdtempSync(join(tmpdir(), "garden-")), "r.json");
+const reminders: string[] = [];
+const remNotifier: Notifier = { async treeGrown() {}, async reminder(id) { reminders.push(`reminder:${id}`); } };
+const g1 = new Garden(file, remNotifier, 5);
+g1.start(user, 300, "oak");
+g1.db.data.sessions["42"].endsAt = Date.now();
+g1.restoreTimers();
+await new Promise((r) => setTimeout(r, 40));
+assert.deepEqual(reminders, ["reminder:42"], "напоминание пришло один раз");
+assert.equal(g1.db.data.sessions["42"].reminded, true, "отправленное напоминание запомнено");
+g1.db.flush();
+const g2 = new Garden(file, remNotifier, 5); // «перезапуск» сервера с теми же данными
+assert.equal(g2.restoreTimers(), 0, "после перезапуска отправленное напоминание не повторяется");
+g2.db.data.sessions["42"] = { kind: "oak", startedAt: 1, endsAt: Date.now() - 2 * 3_600_000, seconds: 300 };
+assert.equal(g2.restoreTimers(), 0, "давно истёкшие сессии не напоминаем");
+g2.db.data.sessions["42"] = { kind: "oak", startedAt: 2, endsAt: Date.now() + 60_000, seconds: 300 };
+assert.equal(g2.restoreTimers(), 1, "идущая сессия получает напоминание после перезапуска");
+g2.abandon(user);
+
+// 2в. адрес мини-аппа
+assert.equal(httpsUrl("WEBAPP_URL", "my-app.up.railway.app"), "https://my-app.up.railway.app/", "без схемы дописываем https://");
+assert.equal(httpsUrl("WEBAPP_URL", " https://my-app.up.railway.app/ "), "https://my-app.up.railway.app/", "пробелы убираем");
+assert.equal(httpsUrl("WEBAPP_URL", "http://my-app.up.railway.app"), undefined, "http не принимаем");
+assert.equal(httpsUrl("WEBAPP_URL", "https://"), undefined, "битый адрес не принимаем");
+assert.equal(httpsUrl("WEBAPP_URL", ""), undefined);
 
 // 3. HTTP API
 const server = createApp(garden, TOKEN, false, "/nonexistent").listen(0);
