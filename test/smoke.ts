@@ -47,6 +47,13 @@ garden.abandon(user);
 assert.equal(garden.db.data.users["42"].withered, 1, "сдавшийся получает засохшее дерево");
 await new Promise((r) => setTimeout(r, 10));
 assert.deepEqual(sent.filter((s) => s.startsWith("tree")), ["tree:42:oak:1", "tree:42:pine:1"]);
+garden.start(user, 300, "oak");
+garden.start(user, 300, "pine");
+assert.equal(garden.db.data.users["42"].withered, 2, "новая сессия поверх идущей засушивает старое дерево");
+garden.db.data.sessions["42"].endsAt = Date.now() - 1;
+garden.start(user, 300, "birch");
+assert.equal(garden.db.data.users["42"].trees, 2, "новая сессия поверх истёкшей засчитывает дерево");
+garden.abandon(user);
 
 // 3. HTTP API
 const server = createApp(garden, TOKEN, false, "/nonexistent").listen(0);
@@ -60,7 +67,7 @@ assert.equal((await call("/api/session/start", { method: "POST", body: JSON.stri
 assert.equal((await call("/api/session/finish", { method: "POST", body: "{}" })).status, 409, "ранний finish даёт 409");
 const top = await (await call("/api/top")).json() as { top: { trees: number }[]; meId: number };
 assert.equal(top.meId, 42);
-assert.equal(top.top[0].trees, 1);
+assert.equal(top.top[0].trees, 2);
 
 server.close();
 console.log("✓ все проверки пройдены");

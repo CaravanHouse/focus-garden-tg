@@ -31,6 +31,8 @@ export class Garden {
   }
 
   start(u: TgUser, seconds: number, kind: TreeKind): ActiveSession {
+    // незакрытая прошлая сессия: время вышло — дерево выросло, не вышло — засохло
+    if (this.db.data.sessions[String(u.id)] && !this.finish(u).ok) this.abandon(u);
     this.touch(u);
     const now = Date.now();
     const session: ActiveSession = { kind, startedAt: now, endsAt: now + seconds * 1000, seconds };
